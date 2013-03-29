@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cruise xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="cruise-config.xsd" schemaVersion="62">
+  <server artifactsdir="artifacts" commandRepositoryLocation="my-command-repo/config/index" serverId="3ab5881f-d821-47f1-837e-919684143c47">
+    <security>
+      <passwordFile path="/home/demo/go-users" />
+      <roles>
+        <role name="developer">
+          <users>
+            <user>ram-dev</user>
+          </users>
+        </role>
+        <role name="tester">
+          <users>
+            <user>tom-tester</user>
+          </users>
+        </role>
+        <role name="deployer">
+          <users>
+            <user>ali-deployer</user>
+            <user>zoe</user>
+          </users>
+        </role>
+      </roles>
+      <admins>
+        <user>bigboss</user>
+      </admins>
+    </security>
+  </server>
+  <pipelines group="development">
+    <authorization>
+      <view>
+        <role>developer</role>
+        <role>tester</role>
+        <role>deployer</role>
+      </view>
+      <operate>
+        <role>tester</role>
+        <role>deployer</role>
+      </operate>
+      <admins>
+        <role>developer</role>
+      </admins>
+    </authorization>
+    <pipeline name="inventory" labeltemplate="inv-1.0.0-${COUNT}">
+      <materials>
+        <git url="/pub/scm/webinar/book-inventory" materialName="inventory" />
+      </materials>
+      <stage name="compile">
+        <jobs>
+          <job name="compile">
+            <tasks>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>mvn clean compile</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+          </job>
+        </jobs>
+      </stage>
+      <stage name="unit-test">
+        <jobs>
+          <job name="unit-test">
+            <tasks>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>mvn test</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+            <artifacts>
+              <test src="target/surefire-reports" />
+            </artifacts>
+          </job>
+        </jobs>
+      </stage>
+      <stage name="publish-rpm">
+        <jobs>
+          <job name="publish-rpm">
+            <tasks>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>mvn deploy</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+            <artifacts>
+              <artifact src="src/main/resources/db/db.xml" dest="inventory" />
+              <artifact src="src/main/resources/db/migrate" dest="inventory" />
+            </artifacts>
+          </job>
+        </jobs>
+      </stage>
+    </pipeline>
+    <pipeline name="catalog" labeltemplate="cat-1.0.0-${COUNT}">
+      <materials>
+        <git url="/pub/scm/webinar/book-management" materialName="catalog" />
+      </materials>
+      <stage name="compile">
+        <jobs>
+          <job name="compile">
+            <tasks>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>mvn clean compile</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+          </job>
+        </jobs>
+      </stage>
+      <stage name="unit-test">
+        <jobs>
+          <job name="unit-test">
+            <tasks>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>mvn test</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+            <artifacts>
+              <test src="target/surefire-reports" />
+            </artifacts>
+          </job>
+        </jobs>
+      </stage>
+      <stage name="publish-rpm">
+        <jobs>
+          <job name="publish-rpm">
+            <tasks>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>mvn deploy</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+            <artifacts>
+              <artifact src="src/main/resources/db/db.xml" dest="catalog" />
+              <artifact src="src/main/resources/db/migrate" dest="catalog" />
+            </artifacts>
+          </job>
+        </jobs>
+      </stage>
+    </pipeline>
+    <pipeline name="website" labeltemplate="site-1.0.0-${COUNT}">
+      <materials>
+        <git url="/pub/scm/webinar/book-website" materialName="website" />
+      </materials>
+      <stage name="compile">
+        <jobs>
+          <job name="compile">
+            <tasks>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>mvn clean compile</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+          </job>
+        </jobs>
+      </stage>
+      <stage name="unit-test">
+        <jobs>
+          <job name="unit-test">
+            <tasks>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>mvn test</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+            <artifacts>
+              <test src="target/surefire-reports" />
+            </artifacts>
+          </job>
+        </jobs>
+      </stage>
+      <stage name="publish-rpm">
+        <jobs>
+          <job name="publish-rpm">
+            <tasks>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>mvn deploy</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+          </job>
+        </jobs>
+      </stage>
+    </pipeline>
+  </pipelines>
+  <pipelines group="QA">
+    <authorization>
+      <view>
+        <role>developer</role>
+        <role>tester</role>
+        <role>deployer</role>
+      </view>
+      <operate>
+        <role>developer</role>
+        <role>tester</role>
+        <role>deployer</role>
+      </operate>
+      <admins>
+        <role>tester</role>
+      </admins>
+    </authorization>
+    <pipeline name="acceptance" labeltemplate="${inventory-pipeline}_${catalog-pipeline}_${website-pipeline}_${COUNT}" isLocked="true">
+      <environmentvariables>
+        <variable name="secret" secure="true">
+          <encryptedValue>vA4MZkyl+0csie9nRBLnZg==</encryptedValue>
+        </variable>
+      </environmentvariables>
+      <materials>
+        <git url="/pub/scm/webinar/config" dest="config" materialName="config" />
+        <pipeline pipelineName="inventory" stageName="publish-rpm" materialName="inventory-pipeline" />
+        <pipeline pipelineName="catalog" stageName="publish-rpm" materialName="catalog-pipeline" />
+        <pipeline pipelineName="website" stageName="publish-rpm" materialName="website-pipeline" />
+      </materials>
+      <stage name="db-migrate" cleanWorkingDir="true">
+        <jobs>
+          <job name="migrate-inventory">
+            <tasks>
+              <fetchartifact pipeline="inventory" stage="publish-rpm" job="publish-rpm" srcdir="inventory">
+                <runif status="passed" />
+              </fetchartifact>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>ant -v -f inventory/db.xml rebuild-db</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+            <artifacts>
+              <artifact src="inventory/migrate/generated" dest="inventory-db" />
+            </artifacts>
+          </job>
+          <job name="migrate-catalog">
+            <tasks>
+              <fetchartifact pipeline="catalog" stage="publish-rpm" job="publish-rpm" srcdir="catalog">
+                <runif status="passed" />
+              </fetchartifact>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>ant -v -f catalog/db.xml rebuild-db</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+            <artifacts>
+              <artifact src="catalog/migrate/generated" dest="catalog-db" />
+            </artifacts>
+          </job>
+        </jobs>
+      </stage>
+      <stage name="upgrade-webapps" cleanWorkingDir="true">
+        <jobs>
+          <job name="upgrade-webapps">
+            <tasks>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>config/scripts/upgrade-webapps-tomcat.sh</arg>
+                <runif status="passed" />
+              </exec>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>cat /usr/share/tomcat-7.0.37/logs/catalina.out</arg>
+                <runif status="failed" />
+              </exec>
+            </tasks>
+          </job>
+        </jobs>
+      </stage>
+    </pipeline>
+  </pipelines>
+  <pipelines group="Production">
+    <authorization>
+      <view>
+        <role>developer</role>
+        <role>tester</role>
+      </view>
+      <admins>
+        <role>deployer</role>
+      </admins>
+    </authorization>
+    <pipeline name="production" labeltemplate="${acceptance}_${COUNT}" isLocked="true">
+      <materials>
+        <pipeline pipelineName="acceptance" stageName="upgrade-webapps" materialName="acceptance" />
+      </materials>
+      <stage name="prepare-db-migrate" cleanWorkingDir="true">
+        <approval type="manual" />
+        <jobs>
+          <job name="migrate-inventory">
+            <tasks>
+              <fetchartifact pipeline="inventory/acceptance" stage="publish-rpm" job="publish-rpm" srcdir="inventory">
+                <runif status="passed" />
+              </fetchartifact>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>ant -v -f inventory/db.xml init generate-delta-script</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+            <artifacts>
+              <artifact src="inventory/migrate/generated" dest="inventory/migrate" />
+            </artifacts>
+          </job>
+          <job name="migrate-catalog">
+            <tasks>
+              <fetchartifact pipeline="catalog/acceptance" stage="publish-rpm" job="publish-rpm" srcdir="catalog">
+                <runif status="passed" />
+              </fetchartifact>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>ant -v -f catalog/db.xml init generate-delta-script</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+            <artifacts>
+              <artifact src="catalog/migrate/generated" dest="catalog/migrate" />
+            </artifacts>
+          </job>
+        </jobs>
+      </stage>
+      <stage name="execute-db-migrate" cleanWorkingDir="true">
+        <approval type="manual">
+          <authorization>
+            <user>zoe</user>
+          </authorization>
+        </approval>
+        <jobs>
+          <job name="migrate-inventory">
+            <tasks>
+              <fetchartifact pipeline="inventory/acceptance" stage="publish-rpm" job="publish-rpm" srcdir="inventory">
+                <runif status="passed" />
+              </fetchartifact>
+              <fetchartifact pipeline="production" stage="prepare-db-migrate" job="migrate-inventory" srcdir="inventory">
+                <runif status="passed" />
+              </fetchartifact>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>ant -v -f inventory/db.xml execute-delta-script</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+          </job>
+          <job name="migrate-catalog">
+            <tasks>
+              <fetchartifact pipeline="catalog/acceptance" stage="publish-rpm" job="publish-rpm" srcdir="catalog">
+                <runif status="passed" />
+              </fetchartifact>
+              <fetchartifact pipeline="production" stage="prepare-db-migrate" job="migrate-catalog" srcdir="catalog">
+                <runif status="passed" />
+              </fetchartifact>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>ant -v -f catalog/db.xml execute-delta-script</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+          </job>
+        </jobs>
+      </stage>
+      <stage name="upgrade-webapps">
+        <jobs>
+          <job name="upgrade-webapps">
+            <tasks>
+              <exec command="/bin/bash">
+                <arg>-c</arg>
+                <arg>sudo -E chef-solo -c /var/chef/webinar/config/chef/solo.rb -j /var/chef/webinar/config/chef/solo-$webserver.json -l debug</arg>
+                <runif status="passed" />
+              </exec>
+            </tasks>
+          </job>
+        </jobs>
+      </stage>
+    </pipeline>
+  </pipelines>
+  <environments>
+    <environment name="development">
+      <agents>
+        <physical uuid="ea0acb17-95f7-4d01-91eb-f4df91af8ba7" />
+      </agents>
+      <pipelines>
+        <pipeline name="catalog" />
+        <pipeline name="inventory" />
+        <pipeline name="website" />
+      </pipelines>
+    </environment>
+    <environment name="QA">
+      <environmentvariables>
+        <variable name="DB_PATH">
+          <value>acceptance</value>
+        </variable>
+        <variable name="HOME">
+          <value>/var/go</value>
+        </variable>
+        <variable name="webserver">
+          <value>tomcat</value>
+        </variable>
+      </environmentvariables>
+      <agents>
+        <physical uuid="cc231520-ed92-4bc0-8e86-1d483f66e85a" />
+      </agents>
+      <pipelines>
+        <pipeline name="acceptance" />
+      </pipelines>
+    </environment>
+    <environment name="production">
+      <environmentvariables>
+        <variable name="DB_PATH">
+          <value>production</value>
+        </variable>
+        <variable name="HOME">
+          <value>/var/go</value>
+        </variable>
+        <variable name="webserver">
+          <value>jetty</value>
+        </variable>
+      </environmentvariables>
+      <agents>
+        <physical uuid="f40c54b2-0f7c-420f-b11a-5d78f6034601" />
+      </agents>
+      <pipelines>
+        <pipeline name="production" />
+      </pipelines>
+    </environment>
+  </environments>
+  <agents>
+    <agent hostname="gowebinar" ipaddress="10.0.2.15" uuid="cc231520-ed92-4bc0-8e86-1d483f66e85a" />
+    <agent hostname="gowebinar" ipaddress="10.0.2.15" uuid="ea0acb17-95f7-4d01-91eb-f4df91af8ba7" />
+    <agent hostname="gowebinar" ipaddress="10.0.2.15" uuid="f40c54b2-0f7c-420f-b11a-5d78f6034601" />
+  </agents>
+</cruise>
+
