@@ -1,0 +1,9 @@
+<!--
+name: rebuild inventory db
+description: Drops and recreates inventory db (applies all deltas)
+keywords: dbdeploy, db
+-->
+<exec command="/bin/bash">
+	<arg>-c</arg>
+	<arg>ant -v -f inventory/db.xml rebuild-db</arg>
+</exec>

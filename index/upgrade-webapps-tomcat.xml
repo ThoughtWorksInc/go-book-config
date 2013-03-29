@@ -1,0 +1,9 @@
+<!--
+name: upgrade tomcat webapps
+description: runs 3 chef recipies - usergroups, upgrade webapps, deploy to tomcat
+keywords: tomcat, chef, deploy
+-->
+<exec command="/bin/bash">
+	<arg>-c</arg>
+	<arg>scripts/upgrade-webapps-tomcat.sh</arg>
+</exec>

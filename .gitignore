@@ -1,0 +1,6 @@
+*.ipr
+*.iml
+out
+target
+generated
+*.iws
